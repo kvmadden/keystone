@@ -1,0 +1,200 @@
+; Engine configuration file.
+; Keystone — a beaver game.
+
+config_version=5
+
+[application]
+
+config/name="Keystone"
+config/description="A beaver builds a wetland. Win when 6 species coexist for 3 days."
+run/main_scene="res://scenes/TitleScreen.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Game="*res://scripts/game.gd"
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=640
+window/size/window_width_override=1280
+window/size/window_height_override=854
+window/stretch/mode="viewport"
+window/stretch/aspect="keep"
+
+[input]
+
+move_up={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 87,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}, {
+"device": -1,
+"echo": false,
+"keycode": 0,
+"physical_keycode": 4194320,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+move_down={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 83,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}, {
+"device": -1,
+"echo": false,
+"keycode": 0,
+"physical_keycode": 4194322,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+move_left={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 65,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}, {
+"device": -1,
+"echo": false,
+"keycode": 0,
+"physical_keycode": 4194319,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+move_right={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 68,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}, {
+"device": -1,
+"echo": false,
+"keycode": 0,
+"physical_keycode": 4194321,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+action={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 32,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+sprint={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 4194325,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+sleep={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 69,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+pause={
+"deadzone": 0.5,
+"events": [{
+"device": -1,
+"echo": false,
+"keycode": 4194305,
+"modifiers": 0,
+"physical_keycode": 0,
+"pressed": false,
+"script": null,
+"unicode": 0,
+"type": "InputEventKey"
+}]
+}
+
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="player"
+2d_physics/layer_3="entities"
+
+[debug]
+
+gdscript/warnings/treat_warnings_as_errors=false
+gdscript/warnings/untyped_declaration=0
+gdscript/warnings/inferred_declaration=0
+gdscript/warnings/unsafe_method_access=0
+gdscript/warnings/unsafe_property_access=0
+gdscript/warnings/unsafe_cast=0
+gdscript/warnings/unsafe_call_argument=0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true

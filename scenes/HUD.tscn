@@ -1,0 +1,258 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBMPlexSans-Regular.ttf" id="2"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="TopLeft" type="MarginContainer" parent="."]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 320.0
+offset_bottom = 100.0
+
+[node name="StaminaLabel" type="Label" parent="TopLeft"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 280.0
+offset_bottom = 20.0
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = "Stamina  100"
+
+[node name="StaminaBar" type="ProgressBar" parent="TopLeft"]
+offset_left = 0.0
+offset_top = 22.0
+offset_right = 240.0
+offset_bottom = 36.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+modulate = Color(0.36, 0.66, 0.29, 1)
+
+[node name="CarryChip" type="Label" parent="TopLeft"]
+offset_left = 0.0
+offset_top = 44.0
+offset_right = 240.0
+offset_bottom = 64.0
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.63, 0.29, 1)
+text = "Carrying log"
+visible = false
+
+[node name="TopRight" type="VBoxContainer" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 110.0
+alignment = 2
+
+[node name="DayLabel" type="Label" parent="TopRight"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = "Day  1"
+horizontal_alignment = 2
+
+[node name="Species" type="HBoxContainer" parent="TopRight"]
+theme_override_constants/separation = 14
+alignment = 2
+
+[node name="BottomCenter" type="MarginContainer" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -64.0
+offset_right = 200.0
+offset_bottom = -32.0
+
+[node name="PromptLabel" type="Label" parent="BottomCenter"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = ""
+horizontal_alignment = 1
+
+[node name="BottomLeft" type="MarginContainer" parent="."]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -40.0
+offset_right = 500.0
+offset_bottom = -12.0
+
+[node name="MessageLabel" type="Label" parent="BottomLeft"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.83, 0.63, 0.29, 1)
+text = ""
+
+[node name="PauseMenu" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+process_mode = 3
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.70)
+
+[node name="Panel" type="PanelContainer" parent="PauseMenu"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -110.0
+offset_right = 160.0
+offset_bottom = 110.0
+
+[node name="VBox" type="VBoxContainer" parent="PauseMenu/Panel"]
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="PauseMenu/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="Resume" type="Button" parent="PauseMenu/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Resume"
+
+[node name="Restart" type="Button" parent="PauseMenu/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Restart"
+
+[node name="Title2" type="Button" parent="PauseMenu/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Title screen"
+
+[node name="Quit" type="Button" parent="PauseMenu/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Quit"
+
+[node name="WinCard" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+process_mode = 3
+
+[node name="Dim" type="ColorRect" parent="WinCard"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.06, 0.10, 0.08, 0.92)
+
+[node name="Panel" type="PanelContainer" parent="WinCard"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -160.0
+offset_right = 260.0
+offset_bottom = 160.0
+
+[node name="VBox" type="VBoxContainer" parent="WinCard/Panel"]
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="WinCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.83, 0.63, 0.29, 1)
+text = "Keystone"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="WinCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = "Ecosystem stable."
+horizontal_alignment = 1
+
+[node name="Stats" type="Label" parent="WinCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = ""
+horizontal_alignment = 1
+
+[node name="Restart" type="Button" parent="WinCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Play again"
+
+[node name="Title2" type="Button" parent="WinCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Title screen"
+
+[node name="LoseCard" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+process_mode = 3
+
+[node name="Dim" type="ColorRect" parent="LoseCard"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.10, 0.05, 0.05, 0.92)
+
+[node name="Panel" type="PanelContainer" parent="LoseCard"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -140.0
+offset_right = 260.0
+offset_bottom = 140.0
+
+[node name="VBox" type="VBoxContainer" parent="LoseCard/Panel"]
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="LoseCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.78, 0.33, 0.24, 1)
+text = "The pond drained."
+horizontal_alignment = 1
+
+[node name="Reason" type="Label" parent="LoseCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.94, 0.94, 0.91, 1)
+text = ""
+horizontal_alignment = 1
+
+[node name="Restart" type="Button" parent="LoseCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Try again"
+
+[node name="Title2" type="Button" parent="LoseCard/Panel/VBox"]
+theme_override_fonts/font = ExtResource("2")
+theme_override_font_sizes/font_size = 16
+text = "Title screen"
+
+[connection signal="pressed" from="PauseMenu/Panel/VBox/Resume" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="PauseMenu/Panel/VBox/Restart" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="PauseMenu/Panel/VBox/Title2" to="." method="_on_title_pressed"]
+[connection signal="pressed" from="PauseMenu/Panel/VBox/Quit" to="." method="_on_quit_pressed"]
+[connection signal="pressed" from="WinCard/Panel/VBox/Restart" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="WinCard/Panel/VBox/Title2" to="." method="_on_title_pressed"]
+[connection signal="pressed" from="LoseCard/Panel/VBox/Restart" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="LoseCard/Panel/VBox/Title2" to="." method="_on_title_pressed"]
