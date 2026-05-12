@@ -20,8 +20,10 @@ const COL_PANEL_BORDER  := Color(0.82, 0.62, 0.28, 0.16)
 const COL_EYEBROW       := Color(0.83, 0.63, 0.29, 0.85)
 const COL_HAIRLINE      := Color(0.82, 0.62, 0.28, 0.20)
 const COL_TEXT_DIM      := Color(0.94, 0.94, 0.91, 0.55)
-const COL_KEYCAP_FILL   := Color(0.18, 0.22, 0.18, 1.0)
-const COL_KEYCAP_BORDER := Color(0.82, 0.62, 0.28, 0.55)
+const COL_KEYCAP_FILL   := Color(0.13, 0.17, 0.14, 1.0)
+const COL_KEYCAP_HI     := Color(0.22, 0.28, 0.23, 1.0)
+const COL_KEYCAP_BORDER := Color(0.82, 0.62, 0.28, 0.65)
+const MONO_FONT_PATH    := "res://assets/fonts/IBMPlexMono-Medium.ttf"
 
 const PANEL_CORNER_RADIUS := 8
 const PANEL_BORDER_W := 1
@@ -43,16 +45,25 @@ const PANEL_PAD_Y := 12
 # ── Dynamic widgets we hold refs to ────────────────────────────────────
 var stamina_value: Label
 var stamina_bar: ProgressBar
+var stamina_bar_fill_style: StyleBoxFlat
+var stamina_pulse_t := 0.0
 var carry_chip: Control
 var carry_chip_label: Label
 var day_number: Label
 var phase_value: Label
+var sundial: Control
 var species_panel: HBoxContainer
 var hold_chip: Control
 var hold_chip_label: Label
+var dam_chip: Control
+var dam_count_label: Label
+var dam_bar: ProgressBar
+var dam_bar_fill_style: StyleBoxFlat
 var prompt_text: Label
 var prompt_keycap: Control
 var message_label: Label
+var message_dot: ColorRect
+var mono_font: Font
 
 # ── Per-species widget tracking ────────────────────────────────────────
 var _species_lights: Dictionary = {}
@@ -62,6 +73,8 @@ var _day_overlay: Label
 var _day_overlay_t := 0.0
 
 func _ready() -> void:
+	if ResourceLoader.exists(MONO_FONT_PATH):
+		mono_font = load(MONO_FONT_PATH)
 	_style_panel(top_left)
 	_style_panel(top_right)
 	_style_panel(bottom_center)
@@ -70,12 +83,15 @@ func _ready() -> void:
 	_style_card_panel($WinCard/Panel)
 	_style_card_panel($LoseCard/Panel)
 	_style_button_default()
+	_polish_pause_menu()
 
 	_build_top_left()
 	_build_top_right()
 	_build_bottom_center()
 	_build_bottom_left()
 	_build_day_overlay()
+	Game.dam_changed.connect(_on_dam_changed)
+	_on_dam_changed(Game.dam_segments.size(), Game.dam_segments.duplicate())
 
 	Game.stamina_changed.connect(_on_stamina)
 	Game.species_changed.connect(_on_species)
@@ -137,6 +153,66 @@ func _style_card_panel(p: PanelContainer) -> void:
 	s.corner_radius_bottom_left = 12
 	s.corner_radius_bottom_right = 12
 	p.add_theme_stylebox_override("panel", s)
+
+func _polish_pause_menu() -> void:
+	# Replace the simple "Paused" label with an eyebrow + big title + controls.
+	var vbox := $PauseMenu/Panel/VBox as VBoxContainer
+	if vbox == null:
+		return
+	var old_title := vbox.get_node_or_null("Title") as Label
+	if old_title != null:
+		old_title.queue_free()
+	# Insert at top: eyebrow + big title + hairline + controls panel
+	var eyebrow := _eyebrow("Keystone  ·  Paused")
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(eyebrow)
+	vbox.move_child(eyebrow, 0)
+	var big := Label.new()
+	big.text = "Take a breath."
+	big.add_theme_font_size_override("font_size", 28)
+	big.add_theme_color_override("font_color", Color(0.94, 0.94, 0.91, 1.0))
+	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(big)
+	vbox.move_child(big, 1)
+	vbox.add_child(_hairline())
+	vbox.move_child(vbox.get_child(vbox.get_child_count() - 1), 2)
+	# Controls reference
+	var controls := _build_controls_reference()
+	vbox.add_child(controls)
+	vbox.move_child(controls, 3)
+	# Spacer between controls and buttons
+	var sp := Control.new()
+	sp.custom_minimum_size = Vector2(0, 8)
+	vbox.add_child(sp)
+	vbox.move_child(sp, 4)
+
+func _build_controls_reference() -> Control:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	var pairs := [
+		["Move", ["W", "A", "S", "D"]],
+		["Act",  ["Space"]],
+		["Sprint", ["Shift"]],
+		["Sleep (in lodge)", ["E"]],
+		["Pause", ["Esc"]],
+	]
+	for entry in pairs:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var label := Label.new()
+		label.text = String(entry[0])
+		label.add_theme_font_size_override("font_size", 12)
+		label.add_theme_color_override("font_color", COL_TEXT_DIM)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+		var keys: Array = entry[1]
+		var keys_row := HBoxContainer.new()
+		keys_row.add_theme_constant_override("separation", 4)
+		for k in keys:
+			keys_row.add_child(_make_keycap(String(k)))
+		row.add_child(keys_row)
+		v.add_child(row)
+	return v
 
 func _style_button_default() -> void:
 	# Style ALL buttons in the HUD consistently (pause + end cards).
@@ -212,9 +288,10 @@ func _build_top_left() -> void:
 	head.add_child(brow)
 	stamina_value = Label.new()
 	stamina_value.text = "100"
-	stamina_value.add_theme_font_size_override("font_size", 16)
+	stamina_value.add_theme_font_size_override("font_size", 17)
 	stamina_value.add_theme_color_override("font_color", Color(0.94, 0.94, 0.91, 1.0))
 	stamina_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if mono_font: stamina_value.add_theme_font_override("font", mono_font)
 	head.add_child(stamina_value)
 
 	# Stamina bar — styled
@@ -223,7 +300,7 @@ func _build_top_left() -> void:
 	stamina_bar.value = 100.0
 	stamina_bar.show_percentage = false
 	stamina_bar.custom_minimum_size = Vector2(240, 6)
-	_style_progress_bar(stamina_bar, Color("#5BA84A"))
+	stamina_bar_fill_style = _style_progress_bar(stamina_bar, Color("#5BA84A"))
 	v.add_child(stamina_bar)
 
 	# Carry chip — visible when carrying a log
@@ -264,7 +341,7 @@ func _make_carry_chip() -> Control:
 	h.add_child(carry_chip_label)
 	return c
 
-func _style_progress_bar(bar: ProgressBar, fill_color: Color) -> void:
+func _style_progress_bar(bar: ProgressBar, fill_color: Color) -> StyleBoxFlat:
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0.12, 0.16, 0.13, 1.0)
 	bg.corner_radius_top_left = 3
@@ -279,33 +356,67 @@ func _style_progress_bar(bar: ProgressBar, fill_color: Color) -> void:
 	fg.corner_radius_bottom_right = 3
 	bar.add_theme_stylebox_override("background", bg)
 	bar.add_theme_stylebox_override("fill", fg)
+	return fg
 
 func _build_top_right() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	top_right.add_child(v)
 
-	# Eyebrow + big day number
+	# Row 1: sundial · DAY eyebrow + number · phase tag
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 8)
+	head.add_theme_constant_override("separation", 10)
 	v.add_child(head)
+	sundial = Control.new()
+	sundial.set_script(preload("res://scripts/sundial.gd"))
+	sundial.custom_minimum_size = Vector2(36, 36)
+	head.add_child(sundial)
+	# Labels block: eyebrow above number+phase
+	var lbls := VBoxContainer.new()
+	lbls.add_theme_constant_override("separation", -2)
+	lbls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(lbls)
 	var day_brow := _eyebrow("Day")
-	day_brow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	day_brow.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	head.add_child(day_brow)
+	lbls.add_child(day_brow)
+	var num_row := HBoxContainer.new()
+	num_row.add_theme_constant_override("separation", 8)
+	lbls.add_child(num_row)
 	day_number = Label.new()
 	day_number.text = "1"
-	day_number.add_theme_font_size_override("font_size", 22)
+	day_number.add_theme_font_size_override("font_size", 26)
 	day_number.add_theme_color_override("font_color", Color(0.94, 0.94, 0.91, 1.0))
-	day_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if mono_font: day_number.add_theme_font_override("font", mono_font)
 	day_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	head.add_child(day_number)
+	num_row.add_child(day_number)
 	phase_value = Label.new()
 	phase_value.text = "dawn"
-	phase_value.add_theme_font_size_override("font_size", 11)
+	phase_value.add_theme_font_size_override("font_size", 12)
 	phase_value.add_theme_color_override("font_color", Game.COL_ACCENT)
 	phase_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	head.add_child(phase_value)
+	num_row.add_child(phase_value)
+
+	v.add_child(_hairline())
+
+	# Dam integrity block: eyebrow + count + bar
+	var dam_brow := _eyebrow("Dam")
+	v.add_child(dam_brow)
+	var dam_row := HBoxContainer.new()
+	dam_row.add_theme_constant_override("separation", 6)
+	v.add_child(dam_row)
+	dam_count_label = Label.new()
+	dam_count_label.text = "0 / 10"
+	dam_count_label.add_theme_font_size_override("font_size", 13)
+	dam_count_label.add_theme_color_override("font_color", Color(0.94, 0.94, 0.91, 1.0))
+	if mono_font: dam_count_label.add_theme_font_override("font", mono_font)
+	dam_row.add_child(dam_count_label)
+	dam_bar = ProgressBar.new()
+	dam_bar.max_value = 10.0
+	dam_bar.value = 0.0
+	dam_bar.show_percentage = false
+	dam_bar.custom_minimum_size = Vector2(180, 6)
+	dam_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dam_bar_fill_style = _style_progress_bar(dam_bar, Color(0.62, 0.46, 0.22, 1.0))
+	dam_row.add_child(dam_bar)
 
 	v.add_child(_hairline())
 
@@ -353,6 +464,7 @@ func _build_species_panel() -> void:
 		pop.add_theme_font_size_override("font_size", 10)
 		pop.add_theme_color_override("font_color", COL_TEXT_DIM)
 		pop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if mono_font: pop.add_theme_font_override("font", mono_font)
 		v.add_child(icon_widget)
 		v.add_child(pop)
 		species_panel.add_child(v)
@@ -403,22 +515,27 @@ func _build_bottom_center() -> void:
 	bottom_center.modulate.a = 0.0
 
 func _make_keycap(label: String) -> Control:
+	# Two-tone keycap: lighter top edge, darker body — sketches mechanical depth.
+	# Built as a small PanelContainer with an inner 1px highlight ColorRect.
 	var c := PanelContainer.new()
 	var st := StyleBoxFlat.new()
 	st.bg_color = COL_KEYCAP_FILL
-	st.corner_radius_top_left = 4
-	st.corner_radius_top_right = 4
-	st.corner_radius_bottom_left = 4
-	st.corner_radius_bottom_right = 4
+	st.corner_radius_top_left = 5
+	st.corner_radius_top_right = 5
+	st.corner_radius_bottom_left = 5
+	st.corner_radius_bottom_right = 5
 	st.border_width_left = 1
 	st.border_width_top = 1
 	st.border_width_right = 1
-	st.border_width_bottom = 1
+	st.border_width_bottom = 2  # heavier bottom edge = "depth"
 	st.border_color = COL_KEYCAP_BORDER
-	st.content_margin_left = 8
-	st.content_margin_right = 8
-	st.content_margin_top = 2
-	st.content_margin_bottom = 3
+	st.content_margin_left = 9
+	st.content_margin_right = 9
+	st.content_margin_top = 3
+	st.content_margin_bottom = 4
+	st.shadow_color = Color(0, 0, 0, 0.45)
+	st.shadow_size = 3
+	st.shadow_offset = Vector2(0, 1)
 	c.add_theme_stylebox_override("panel", st)
 	var l := Label.new()
 	l.name = "Label"
@@ -426,6 +543,7 @@ func _make_keycap(label: String) -> Control:
 	l.add_theme_font_size_override("font_size", 11)
 	l.add_theme_color_override("font_color", Color(0.98, 0.88, 0.62, 1.0))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if mono_font: l.add_theme_font_override("font", mono_font)
 	c.add_child(l)
 	return c
 
@@ -437,13 +555,24 @@ func _set_keycap_text(t: String) -> void:
 		l.text = t
 
 func _build_bottom_left() -> void:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	bottom_left.add_child(h)
+	# Tiny gold dot indicator on the left edge of the message banner.
+	var dot_wrap := CenterContainer.new()
+	dot_wrap.custom_minimum_size = Vector2(8, 14)
+	h.add_child(dot_wrap)
+	message_dot = ColorRect.new()
+	message_dot.color = Game.COL_ACCENT
+	message_dot.custom_minimum_size = Vector2(6, 6)
+	dot_wrap.add_child(message_dot)
 	message_label = Label.new()
 	message_label.text = ""
 	message_label.add_theme_font_size_override("font_size", 12)
 	message_label.add_theme_color_override("font_color", Color(0.98, 0.88, 0.62, 1.0))
 	message_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	message_label.clip_text = true
-	bottom_left.add_child(message_label)
+	h.add_child(message_label)
 	bottom_left.modulate.a = 0.0  # hide until first message
 
 func _build_day_overlay() -> void:
@@ -509,6 +638,18 @@ func _process(delta: float) -> void:
 		var p: float = (sin(Time.get_ticks_msec() / 380.0) * 0.5 + 0.5)
 		hold_chip.modulate = Color(1.0, 1.0, 1.0, 0.85 + p * 0.15)
 
+	# Low-stamina warning pulse on the bar fill alpha
+	if Game.stamina <= 25.0 and stamina_bar_fill_style != null:
+		stamina_pulse_t += delta * 5.0
+		var pulse: float = sin(stamina_pulse_t) * 0.5 + 0.5
+		var col := stamina_bar_fill_style.bg_color
+		col.a = 0.7 + pulse * 0.3
+		stamina_bar_fill_style.bg_color = col
+	elif stamina_bar_fill_style != null and stamina_bar_fill_style.bg_color.a < 1.0:
+		var col := stamina_bar_fill_style.bg_color
+		col.a = 1.0
+		stamina_bar_fill_style.bg_color = col
+
 # ── Signal handlers ────────────────────────────────────────────────────
 func _on_stamina(v: float) -> void:
 	stamina_bar.value = v
@@ -520,12 +661,32 @@ func _on_stamina(v: float) -> void:
 		fill_color = Game.COL_ACCENT
 	else:
 		fill_color = Game.COL_DANGER
-	# Re-apply the fill stylebox color
-	var fg := stamina_bar.get_theme_stylebox("fill") as StyleBoxFlat
-	if fg != null:
-		fg.bg_color = fill_color
-	# Tint the number too at low stamina
+	if stamina_bar_fill_style != null:
+		stamina_bar_fill_style.bg_color = fill_color
 	stamina_value.add_theme_color_override("font_color", Color(0.94, 0.94, 0.91, 1.0) if v > 25.0 else fill_color)
+
+func _on_dam_changed(count: int, integrity: Array) -> void:
+	if dam_count_label == null or dam_bar == null:
+		return
+	dam_count_label.text = "%d / 10" % count
+	# Average integrity drives the bar fill (0-10 scale = count * avg)
+	var avg: float = 1.0
+	if integrity.size() > 0:
+		var sum: float = 0.0
+		for v in integrity:
+			sum += float(v)
+		avg = sum / integrity.size()
+	dam_bar.value = float(count) * clamp(avg, 0.0, 1.0)
+	if dam_bar_fill_style != null:
+		# Color = weighted by integrity: gold full → muted → danger when crumbling
+		var c: Color
+		if avg > 0.66:
+			c = Game.COL_ACCENT
+		elif avg > 0.33:
+			c = Color(0.62, 0.46, 0.22, 1.0)
+		else:
+			c = Game.COL_DANGER
+		dam_bar_fill_style.bg_color = c
 
 func _on_species(counts: Dictionary) -> void:
 	var total := 0
