@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/world.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/water_sim.gd" id="2"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://scripts/threats.gd" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/Beaver.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="8"]
+[ext_resource type="Script" path="res://scripts/camera.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/fireflies.gd" id="10"]
 
 [node name="Main" type="Node2D"]
 
@@ -33,10 +35,14 @@ script = ExtResource("5")
 [node name="Threats" type="Node" parent="."]
 script = ExtResource("6")
 
+[node name="Fireflies" type="Node2D" parent="."]
+script = ExtResource("10")
+
 [node name="Beaver" parent="." instance=ExtResource("7")]
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(480, 320)
 zoom = Vector2(1.0, 1.0)
+script = ExtResource("9")
 
 [node name="HUD" parent="." instance=ExtResource("8")]

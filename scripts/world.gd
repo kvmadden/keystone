@@ -28,6 +28,13 @@ var grass_variants: Array = []       # additional grass textures for variety
 
 func _ready() -> void:
 	_generate()
+	Game.carrying_changed.connect(func(_c): queue_redraw())
+	set_process(true)
+
+func _process(_delta: float) -> void:
+	# Re-queue redraw while the pulse animation is active
+	if Game.carrying_log:
+		queue_redraw()
 	if ResourceLoader.exists("res://assets/sprites/tree.png"):
 		tex_tree = load("res://assets/sprites/tree.png") as Texture2D
 	if ResourceLoader.exists("res://assets/sprites/lodge.png"):
@@ -168,14 +175,22 @@ func _draw() -> void:
 					var door := Rect2(rect.position + Vector2(13, 18), Vector2(6, 10))
 					draw_rect(door, Game.COL_LODGE_DR)
 
-	# Dam-zone outline (gold dashed-ish rect)
+	# Dam-zone outline (gold) — pulses when the beaver is carrying a log
 	var dz_rect := Rect2(
 		dam_zone_x * Game.TILE_SIZE,
 		dam_zone_y_top * Game.TILE_SIZE,
 		Game.TILE_SIZE,
 		(dam_zone_y_bot - dam_zone_y_top + 1) * Game.TILE_SIZE,
 	)
-	draw_rect(dz_rect, Color(Game.COL_DAM_ZONE.r, Game.COL_DAM_ZONE.g, Game.COL_DAM_ZONE.b, 0.45), false, 2.0)
+	var base_a: float = 0.55 if Game.carrying_log else 0.30
+	var pulse: float = 0.0
+	if Game.carrying_log:
+		pulse = (sin(Time.get_ticks_msec() / 220.0) * 0.5 + 0.5) * 0.35
+	var alpha: float = clamp(base_a + pulse, 0.0, 1.0)
+	draw_rect(dz_rect, Color(Game.COL_DAM_ZONE.r, Game.COL_DAM_ZONE.g, Game.COL_DAM_ZONE.b, alpha), false, 2.0)
+	# When carrying, draw a faint gold fill so the eye snaps to the target
+	if Game.carrying_log:
+		draw_rect(dz_rect, Color(Game.COL_DAM_ZONE.r, Game.COL_DAM_ZONE.g, Game.COL_DAM_ZONE.b, 0.10), true)
 
 func _draw_tile(rect: Rect2, base_t: int, seed: int) -> void:
 	# Pick the texture (variant for grass) and an optional 90° rotation.

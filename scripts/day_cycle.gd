@@ -38,9 +38,11 @@ func _advance_phase() -> void:
 	if Game.phase == Game.Phase.DAWN:
 		Game.current_day += 1
 		Game.day_advanced.emit(Game.current_day)
-		Game.emit_message("Day %d begins." % Game.current_day)
+		Game.emit_message("Day %d. Dawn over the pond." % Game.current_day)
+	elif Game.phase == Game.Phase.DUSK:
+		Game.emit_message("Dusk. The fireflies will rise over the wetland.")
 	elif Game.phase == Game.Phase.NIGHT:
-		Game.emit_message("Night falls. Watch for coyotes.")
+		Game.emit_message("Night. A coyote howls. Sleep in the lodge if you can.")
 
 func _phase_color() -> Color:
 	# Smoothly interpolate to the next phase's color over the last 30% of the phase.

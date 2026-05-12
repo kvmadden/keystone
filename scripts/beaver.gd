@@ -36,6 +36,9 @@ func _ready() -> void:
 	position = _tile_center(world.find_lodge_tile())
 	_try_load_pixel_sprites()
 	_update_carry_visual()
+	# Opening framing — lands as the first banner message
+	get_tree().create_timer(0.6).timeout.connect(func():
+		Game.emit_message("You are Castor canadensis. Chew trees, dam the stream, raise a wetland."))
 
 func _physics_process(delta: float) -> void:
 	if Game.game_over:
@@ -45,6 +48,12 @@ func _physics_process(delta: float) -> void:
 	_drain_passive_stamina(delta)
 	move_and_slide()
 	Game.stamina_changed.emit(Game.stamina)
+	# Subtle idle bob: only when standing still and not in an action
+	if velocity.length() < 1.0 and action_state == "idle":
+		var t := Time.get_ticks_msec() / 280.0
+		sprite_root.position.y = sin(t) * 1.2
+	else:
+		sprite_root.position.y = 0.0
 	queue_redraw()
 	if Game.stamina <= 0.0:
 		Game.stamina = 0.0
@@ -182,6 +191,8 @@ func _finish_action() -> void:
 				Game.carrying_log = false
 				_update_carry_visual()
 				Game.carrying_changed.emit(false)
+				_shake_camera(5.0, 0.2)
+				_spawn_splash(position)
 		"repairing":
 			if Game.stamina >= 5.0 and dam.repair_worst():
 				Game.stamina -= 5.0
@@ -268,3 +279,15 @@ func bite() -> void:
 	Game.stamina = max(0.0, Game.stamina - 30.0)
 	position = _tile_center(world.find_lodge_tile())
 	Game.emit_message("A coyote struck! Limped back to the lodge.")
+	_shake_camera(12.0, 0.6)
+
+func _shake_camera(mag: float, dur: float) -> void:
+	var cam = get_node_or_null("/root/Main/Camera2D")
+	if cam and cam.has_method("shake"):
+		cam.shake(mag, dur)
+
+func _spawn_splash(at: Vector2) -> void:
+	var splash := Node2D.new()
+	splash.set_script(preload("res://scripts/splash.gd"))
+	splash.position = at + Vector2(0, -4)
+	get_node("/root/Main").add_child(splash)

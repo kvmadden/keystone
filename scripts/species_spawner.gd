@@ -125,10 +125,17 @@ func _check_win() -> void:
 			break
 	if all_present:
 		Game.consecutive_full_days += 1
-		Game.emit_message("Ecosystem held — day %d of 3." % Game.consecutive_full_days)
+		var hold_msg := "Six species coexisting — holding day %d of 3." % Game.consecutive_full_days
+		if Game.consecutive_full_days == 1:
+			hold_msg = "All six species present. Hold the ecosystem for three days."
+		elif Game.consecutive_full_days == 2:
+			hold_msg = "Two days holding. One more and the wetland is self-sustaining."
+		Game.emit_message(hold_msg)
 		if Game.consecutive_full_days >= 3 and not Game.win:
 			Game.win = true
 			Game.game_over = true
 			Game.game_won.emit()
 	else:
+		if Game.consecutive_full_days > 0:
+			Game.emit_message("A species dropped out. The hold resets.")
 		Game.consecutive_full_days = 0

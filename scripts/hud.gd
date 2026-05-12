@@ -192,6 +192,11 @@ func _on_species(counts: Dictionary) -> void:
 		var n := int(counts.get(k, 0))
 		var light = _species_lights[k]
 		light.pop.text = str(n)
+		# Highlight the count gold when present so the player sees the lit lineup
+		if n > 0:
+			light.pop.add_theme_color_override("font_color", Game.COL_ACCENT)
+		else:
+			light.pop.add_theme_color_override("font_color", Color(Game.COL_TEXT.r, Game.COL_TEXT.g, Game.COL_TEXT.b, 0.50))
 		var c := _species_color(k)
 		if n > 0:
 			light.glyph.modulate = Color(1, 1, 1, 1.0)
