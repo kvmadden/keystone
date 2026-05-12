@@ -6,6 +6,7 @@ extends Node2D
 const G := preload("res://scripts/game.gd")
 
 var tiles: Array = []          # tiles[y][x] : int (Game.Tile)
+var tile_seeds: Array = []     # tile_seeds[y][x] : int  (0..3 rotation hint, 0..N variant)
 var wet_age: Array = []        # seconds adjacent-to-water for wetland conversion
 var tree_positions: Array = [] # Vector2i list of tree tiles (for chew lookups)
 var stream_y_top := 9
@@ -21,6 +22,9 @@ var _display: Array = []
 var tex_tree: Texture2D
 var tex_lodge: Texture2D
 var tex_stump: Texture2D
+var tree_variants: Array = []        # additional tree textures
+var tile_tex: Dictionary = {}        # Game.Tile -> Texture2D
+var grass_variants: Array = []       # additional grass textures for variety
 
 func _ready() -> void:
 	_generate()
@@ -30,29 +34,55 @@ func _ready() -> void:
 		tex_lodge = load("res://assets/sprites/lodge.png") as Texture2D
 	if ResourceLoader.exists("res://assets/sprites/tree_stump.png"):
 		tex_stump = load("res://assets/sprites/tree_stump.png") as Texture2D
+	# Tile textures — keyed by Game.Tile enum value
+	var tile_map := {
+		Game.Tile.DRY:     "res://assets/sprites/tile_dry.png",
+		Game.Tile.GRASS:   "res://assets/sprites/tile_grass.png",
+		Game.Tile.DIRT:    "res://assets/sprites/tile_dirt.png",
+		Game.Tile.SHALLOW: "res://assets/sprites/tile_shallow.png",
+		Game.Tile.DEEP:    "res://assets/sprites/tile_deep.png",
+		Game.Tile.WETLAND: "res://assets/sprites/tile_wetland.png",
+	}
+	for k in tile_map.keys():
+		var p: String = tile_map[k]
+		if ResourceLoader.exists(p):
+			tile_tex[k] = load(p) as Texture2D
+	# Optional grass variants — picked deterministically per-tile via tile_seeds
+	for variant in ["res://assets/sprites/tile_grass_2.png", "res://assets/sprites/tile_grass_3.png"]:
+		if ResourceLoader.exists(variant):
+			grass_variants.append(load(variant) as Texture2D)
+	for tv in ["res://assets/sprites/tree_2.png", "res://assets/sprites/tree_3.png"]:
+		if ResourceLoader.exists(tv):
+			tree_variants.append(load(tv) as Texture2D)
 	queue_redraw()
 
 func _generate() -> void:
 	# Empty grid → dry/grass mix with a 2-tile stream + dam zone + scattered trees.
 	tiles.resize(Game.MAP_H)
 	wet_age.resize(Game.MAP_H)
+	tile_seeds.resize(Game.MAP_H)
 	for y in range(Game.MAP_H):
 		var row := []
 		var wrow := []
+		var srow := []
 		row.resize(Game.MAP_W)
 		wrow.resize(Game.MAP_W)
+		srow.resize(Game.MAP_W)
 		for x in range(Game.MAP_W):
-			# Base: grass with a "dry/dirt" speckle
+			# Base: mostly grass with a light dry/dirt speckle
 			var r := randf()
-			if r < 0.18:
+			if r < 0.08:
 				row[x] = Game.Tile.DRY
-			elif r < 0.30:
+			elif r < 0.14:
 				row[x] = Game.Tile.DIRT
 			else:
 				row[x] = Game.Tile.GRASS
 			wrow[x] = 0.0
+			# 16 bits of seed per tile: low byte = variant pick, high byte = rotation
+			srow[x] = randi() & 0xFFFF
 		tiles[y] = row
 		wet_age[y] = wrow
+		tile_seeds[y] = srow
 
 	# Carve the stream (2 tiles tall, slight wobble) — starts as SHALLOW
 	for x in range(Game.MAP_W):
@@ -102,15 +132,27 @@ func _draw() -> void:
 		for x in range(Game.MAP_W):
 			var t = tiles[y][x]
 			var rect := Rect2(x * Game.TILE_SIZE, y * Game.TILE_SIZE, Game.TILE_SIZE, Game.TILE_SIZE)
-			draw_rect(rect, _tile_color(t))
-			# Subtle inner border for grid feel — only on land
-			if t != Game.Tile.SHALLOW and t != Game.Tile.DEEP:
-				draw_rect(rect, Color(0, 0, 0, 0.10), false, 1.0)
+			# Base tile: prefer PixelLab texture, fall back to solid color
+			# For TREE / LODGE the underlying tile is grass (sprite drawn on top)
+			var base_t: int = t
+			if t == Game.Tile.TREE or t == Game.Tile.LODGE:
+				base_t = Game.Tile.GRASS
+			_draw_tile(rect, base_t, int(tile_seeds[y][x]))
 
 			# Tree: prefer sprite, fall back to placeholder shape
 			if t == Game.Tile.TREE:
-				if tex_tree != null:
-					draw_texture_rect(tex_tree, rect, false)
+				var tree_tex: Texture2D = tex_tree
+				# Pick variant deterministically from tile_seeds
+				if not tree_variants.is_empty():
+					var pick: int = (int(tile_seeds[y][x]) >> 12) & 0x03
+					if pick == 1 and tree_variants.size() >= 1:
+						tree_tex = tree_variants[0]
+					elif pick == 2 and tree_variants.size() >= 2:
+						tree_tex = tree_variants[1]
+				if tree_tex != null:
+					# Slight drop shadow underneath for visibility against grass
+					draw_rect(Rect2(rect.position + Vector2(6, 26), Vector2(20, 5)), Color(0, 0, 0, 0.18))
+					draw_texture_rect(tree_tex, rect, false)
 				else:
 					var inner := Rect2(rect.position + Vector2(6, 4), Vector2(20, 24))
 					draw_rect(inner, Game.COL_TREE)
@@ -118,6 +160,7 @@ func _draw() -> void:
 					draw_rect(Rect2(rect.position + Vector2(13, 24), Vector2(6, 6)), Game.COL_STUMP)
 			elif t == Game.Tile.LODGE:
 				if tex_lodge != null:
+					draw_rect(Rect2(rect.position + Vector2(3, 26), Vector2(26, 5)), Color(0, 0, 0, 0.22))
 					draw_texture_rect(tex_lodge, rect, false)
 				else:
 					var lr := Rect2(rect.position + Vector2(2, 2), Vector2(28, 28))
@@ -133,6 +176,39 @@ func _draw() -> void:
 		(dam_zone_y_bot - dam_zone_y_top + 1) * Game.TILE_SIZE,
 	)
 	draw_rect(dz_rect, Color(Game.COL_DAM_ZONE.r, Game.COL_DAM_ZONE.g, Game.COL_DAM_ZONE.b, 0.45), false, 2.0)
+
+func _draw_tile(rect: Rect2, base_t: int, seed: int) -> void:
+	# Pick the texture (variant for grass) and an optional 90° rotation.
+	var tex: Texture2D = null
+	if base_t == Game.Tile.GRASS and not grass_variants.is_empty():
+		# Bias toward the primary grass to keep coverage cohesive.
+		var pick: int = seed & 0xFF
+		if pick < 128:
+			tex = tile_tex.get(Game.Tile.GRASS) as Texture2D
+		elif pick < 192:
+			tex = grass_variants[0]
+		else:
+			tex = grass_variants[1] if grass_variants.size() > 1 else grass_variants[0]
+	else:
+		tex = tile_tex.get(base_t) as Texture2D
+
+	if tex == null:
+		# Fallback solid color
+		draw_rect(rect, _tile_color(base_t))
+		if base_t != Game.Tile.SHALLOW and base_t != Game.Tile.DEEP:
+			draw_rect(rect, Color(0, 0, 0, 0.10), false, 1.0)
+		return
+
+	# Apply rotation 0/90/180/270 via canvas transform around the tile center.
+	var rot_q: int = (seed >> 8) & 0x03
+	if rot_q == 0:
+		draw_texture_rect(tex, rect, false)
+		return
+	var center := rect.position + rect.size * 0.5
+	var prev_xform := get_canvas_transform()
+	draw_set_transform(center, rot_q * PI / 2.0, Vector2.ONE)
+	draw_texture_rect(tex, Rect2(-rect.size * 0.5, rect.size), false)
+	draw_set_transform_matrix(Transform2D())  # reset
 
 func _tile_color(t: int) -> Color:
 	match t:

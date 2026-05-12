@@ -33,9 +33,11 @@ var _peak_species_count := 0
 
 func _ready() -> void:
 	_build_species_panel()
+	_add_hud_backdrops()
 	Game.stamina_changed.connect(_on_stamina)
 	Game.species_changed.connect(_on_species)
 	Game.day_advanced.connect(_on_day)
+	Game.phase_changed.connect(_on_phase)
 	Game.log_message.connect(_on_message)
 	Game.carrying_changed.connect(_on_carry)
 	Game.game_won.connect(_on_win)
@@ -60,24 +62,79 @@ func _process(delta: float) -> void:
 	# Update action prompt every frame
 	prompt_label.text = _build_prompt()
 
+func _add_hud_backdrops() -> void:
+	# Insert a translucent dark panel BEHIND the top-left + top-right HUD groups
+	# so text reads against bright wetland or dark water alike.
+	var tl_bg := ColorRect.new()
+	tl_bg.color = Color(0.06, 0.10, 0.08, 0.55)
+	tl_bg.anchor_left = 0.0
+	tl_bg.anchor_right = 0.0
+	tl_bg.offset_left = 8.0
+	tl_bg.offset_top = 8.0
+	tl_bg.offset_right = 8.0 + 280.0
+	tl_bg.offset_bottom = 8.0 + 76.0
+	tl_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tl_bg)
+	move_child(tl_bg, 0)  # behind everything
+
+	var tr_bg := ColorRect.new()
+	tr_bg.color = Color(0.06, 0.10, 0.08, 0.55)
+	tr_bg.anchor_left = 1.0
+	tr_bg.anchor_right = 1.0
+	tr_bg.offset_left = -348.0
+	tr_bg.offset_top = 8.0
+	tr_bg.offset_right = -8.0
+	tr_bg.offset_bottom = 8.0 + 140.0
+	tr_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(tr_bg)
+	move_child(tr_bg, 1)
+
+	var bc_bg := ColorRect.new()
+	bc_bg.color = Color(0.06, 0.10, 0.08, 0.55)
+	bc_bg.anchor_left = 0.5
+	bc_bg.anchor_right = 0.5
+	bc_bg.anchor_top = 1.0
+	bc_bg.anchor_bottom = 1.0
+	bc_bg.offset_left = -220.0
+	bc_bg.offset_top = -70.0
+	bc_bg.offset_right = 220.0
+	bc_bg.offset_bottom = -28.0
+	bc_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bc_bg)
+	move_child(bc_bg, 2)
+
 func _build_species_panel() -> void:
 	for k in SPECIES_ORDER:
 		var v := VBoxContainer.new()
 		v.alignment = BoxContainer.ALIGNMENT_CENTER
-		var lbl := Label.new()
-		lbl.text = SPECIES_GLYPH.get(k, "•")
-		lbl.add_theme_color_override("font_color", _species_color(k))
-		lbl.add_theme_font_size_override("font_size", 22)
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		# Prefer a PixelLab icon if present; otherwise fall back to a letter glyph.
+		var icon_path := "res://assets/sprites/icon_%s.png" % k
+		var icon_widget: Control
+		var icon_tex: Texture2D = null
+		if ResourceLoader.exists(icon_path):
+			icon_tex = load(icon_path) as Texture2D
+		if icon_tex != null:
+			var tr := TextureRect.new()
+			tr.texture = icon_tex
+			tr.custom_minimum_size = Vector2(32, 32)
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_widget = tr
+		else:
+			var lbl := Label.new()
+			lbl.text = SPECIES_GLYPH.get(k, "•")
+			lbl.add_theme_color_override("font_color", _species_color(k))
+			lbl.add_theme_font_size_override("font_size", 22)
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			icon_widget = lbl
 		var pop := Label.new()
 		pop.text = "0"
 		pop.add_theme_color_override("font_color", Game.COL_TEXT)
 		pop.add_theme_font_size_override("font_size", 11)
 		pop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(lbl)
+		v.add_child(icon_widget)
 		v.add_child(pop)
 		species_panel.add_child(v)
-		_species_lights[k] = {"glyph": lbl, "pop": pop}
+		_species_lights[k] = {"glyph": icon_widget, "pop": pop}
 
 func _species_color(k: String) -> Color:
 	match k:
@@ -107,17 +164,26 @@ func _on_species(counts: Dictionary) -> void:
 		light.pop.text = str(n)
 		var c := _species_color(k)
 		if n > 0:
-			light.glyph.modulate = Color(1, 1, 1, 1)
-			light.glyph.add_theme_color_override("font_color", c)
+			light.glyph.modulate = Color(1, 1, 1, 1.0)
+			if light.glyph is Label:
+				(light.glyph as Label).add_theme_color_override("font_color", c)
 		else:
-			# Dim
-			light.glyph.add_theme_color_override("font_color", Color(c.r, c.g, c.b, 0.30))
+			# Dim — keep enough alpha to clearly see the lineup at game start
+			light.glyph.modulate = Color(0.6, 0.6, 0.6, 0.75)
+			if light.glyph is Label:
+				(light.glyph as Label).add_theme_color_override("font_color", Color(c.r, c.g, c.b, 0.6))
 		total += (1 if n > 0 else 0)
 	if total > _peak_species_count:
 		_peak_species_count = total
 
 func _on_day(d: int) -> void:
-	day_label.text = "Day  %d" % d
+	_refresh_day_label()
+
+func _on_phase(_p: int, _t: float) -> void:
+	_refresh_day_label()
+
+func _refresh_day_label() -> void:
+	day_label.text = "Day  %d  ·  %s" % [Game.current_day, Game.phase_name(Game.phase)]
 
 func _on_message(t: String) -> void:
 	message_label.text = t

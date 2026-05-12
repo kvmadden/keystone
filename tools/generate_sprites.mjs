@@ -30,6 +30,7 @@ const ONLY = (() => {
 })();
 const CONCURRENCY = 4;
 const STYLE = "limited palette pixel art, clean outlines, gentle warm earthy tones, side or front view on transparent background";
+const TILE_STYLE = "top-down view, seamlessly tileable, pixel art texture, no border, no shadow, no objects, even coverage edge-to-edge, low contrast";
 
 // ── Sprite manifest ────────────────────────────────────────────────────
 const SPRITES = [
@@ -54,6 +55,27 @@ const SPRITES = [
   { name: "heron",           w: 32, h: 32, prompt: "tall grey heron wading, side view, long neck, long legs, slim orange beak" },
   { name: "otter",           w: 32, h: 32, prompt: "playful river otter side view, brown fur, sleek body, swimming on its back" },
   { name: "coyote",          w: 32, h: 32, prompt: "small tan coyote, lean, side view, alert ears, walking pose" },
+  // Tile textures — seamlessly tileable
+  { name: "tile_grass",      w: 32, h: 32, style: TILE_STYLE, prompt: "soft natural grass texture, varied green blades, dewy, top-down" },
+  { name: "tile_grass_2",    w: 32, h: 32, style: TILE_STYLE, prompt: "natural grass texture with a tiny yellow wildflower and a small white flower, mostly green blades, top-down" },
+  { name: "tile_grass_3",    w: 32, h: 32, style: TILE_STYLE, prompt: "natural grass texture with a few short clover sprouts and tiny pebbles, mostly green blades, top-down" },
+  { name: "tile_dry",        w: 32, h: 32, style: TILE_STYLE, prompt: "dry parched ground with sparse pale brown grass tufts and small cracks, top-down" },
+  { name: "tile_dirt",       w: 32, h: 32, style: TILE_STYLE, prompt: "rich brown dirt soil with small pebbles and twigs, top-down" },
+  { name: "tile_shallow",    w: 32, h: 32, style: TILE_STYLE, prompt: "rippling shallow pond water, light blue with small white ripple highlights, calm, no sand, no beach, just water, top-down" },
+  { name: "tile_deep",       w: 32, h: 32, style: TILE_STYLE, prompt: "deep dark blue water with subtle wave highlights, calm, top-down" },
+  { name: "tile_wetland",    w: 32, h: 32, style: TILE_STYLE, prompt: "lush bright wetland marsh with vibrant green grasses, damp moss, faint puddles, top-down" },
+  // Tree variants
+  { name: "tree_2",          w: 32, h: 32, prompt: "small leafy bush, round vibrant green canopy, short brown stem visible, front view, simple silhouette, transparent background" },
+  { name: "tree_3",          w: 32, h: 32, prompt: "tall narrow pine tree, dark green needles, brown trunk, front view, simple silhouette, transparent background" },
+  // Species HUD icons — small distilled silhouettes
+  { name: "icon_willow",     w: 32, h: 32, prompt: "small green willow silhouette icon, mostly green canopy with brown trunk dot, simple, transparent background" },
+  { name: "icon_frog",       w: 32, h: 32, prompt: "small green frog silhouette icon, front view, simple, transparent background" },
+  { name: "icon_fish",       w: 32, h: 32, prompt: "small golden fish silhouette icon, side view, simple, transparent background" },
+  { name: "icon_duck",       w: 32, h: 32, prompt: "small white duck silhouette icon, side view with orange beak, simple, transparent background" },
+  { name: "icon_heron",      w: 32, h: 32, prompt: "small grey heron silhouette icon, side view, slim neck and beak, simple, transparent background" },
+  { name: "icon_otter",      w: 32, h: 32, prompt: "small brown otter silhouette icon, side view, simple, transparent background" },
+  // Title-screen background
+  { name: "title_bg",        w: 256, h: 192, prompt: "wide pixel art landscape, beaver pond at dusk, calm dark green forest in the background with silhouetted pine trees, dark blue pond water in the foreground with a small beaver dam of stacked logs across the middle, soft warm sky fading from orange at horizon to deep blue at top, a small lit beaver lodge dome on the bank, painterly mood, no text, no UI" },
 ];
 
 async function generate(s) {
@@ -62,10 +84,11 @@ async function generate(s) {
     console.log(`  • cached  ${s.name}`);
     return { name: s.name, status: "cached" };
   }
+  const isTile = !!s.style;
   const body = {
-    description: `${s.prompt}, ${STYLE}`,
+    description: `${s.prompt}, ${s.style || STYLE}`,
     image_size: { width: s.w, height: s.h },
-    no_background: true,
+    no_background: !isTile,    // tiles need a full background
     text_guidance_scale: 8,
   };
   const t0 = Date.now();

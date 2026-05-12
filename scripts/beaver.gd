@@ -191,12 +191,23 @@ func _face_sprite(d: Vector2) -> void:
 		sprite_root.scale.x = 1.0  # neutral facing for up/down
 
 func _update_carry_visual() -> void:
+	# Pixel-art mode: beaver_carrying.png IS a full beaver-holding-log,
+	# so when carrying we show ONLY that sprite (not the regular beaver underneath).
 	if have_pixel_sprites and carry_sprite.texture != null:
-		carry_sprite.visible = Game.carrying_log
+		if Game.carrying_log:
+			sprite.visible = false
+			carry_sprite.visible = true
+		else:
+			sprite.visible = true
+			carry_sprite.visible = false
+		placeholder.visible = false
 		carry_placeholder.visible = false
 	else:
-		carry_placeholder.visible = Game.carrying_log
+		# Fallback mode: placeholder body + a small log chip on top
+		placeholder.visible = true
+		sprite.visible = false
 		carry_sprite.visible = false
+		carry_placeholder.visible = Game.carrying_log
 
 func _try_load_pixel_sprites() -> void:
 	if ResourceLoader.exists("res://assets/sprites/beaver.png"):
