@@ -206,7 +206,7 @@ func _build_prompt() -> String:
 	if Game.carrying_log and world.is_in_dam_zone(here):
 		return "Place segment  [Space]"
 	if dam.needs_repair_nearby(here):
-		return "Repair dam  [hold Space]"
+		return "Repair dam  [Space]"
 	if not Game.carrying_log:
 		# log under feet?
 		var logs = get_node("/root/Main/Logs")
@@ -218,7 +218,14 @@ func _build_prompt() -> String:
 		# tree nearby?
 		var tp = world.find_tree_near(here)
 		if tp.x >= 0:
-			return "Chew tree  [hold Space]"
+			return "Chew tree  [Space]"
+	# If near the dam without a damaged segment, surface a hint
+	if dam.is_near_dam(here):
+		if Game.dam_segments.is_empty():
+			return "Build a dam — bring logs to the gold zone"
+		if Game.carrying_log:
+			return "Walk onto the gold zone to place"
+		return "Dam is solid"
 	return ""
 
 func _on_win() -> void:

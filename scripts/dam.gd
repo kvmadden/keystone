@@ -106,11 +106,16 @@ func repair_worst() -> bool:
 	Game.emit_message("Repaired a dam segment.")
 	return true
 
-func needs_repair_nearby(p: Vector2i) -> bool:
-	# Beaver is adjacent to dam if x-distance ≤ 1 AND y in zone.
+func is_near_dam(p: Vector2i) -> bool:
+	# Within 1 tile of dam_zone_x, AND y inside the zone (with 1-tile slack).
 	if abs(p.x - int(world.dam_zone_x)) > 1:
 		return false
 	if p.y < int(world.dam_zone_y_top) - 1 or p.y > int(world.dam_zone_y_bot) + 1:
+		return false
+	return true
+
+func needs_repair_nearby(p: Vector2i) -> bool:
+	if not is_near_dam(p):
 		return false
 	# Any segment with integrity < 1.0?
 	for v in Game.dam_segments:

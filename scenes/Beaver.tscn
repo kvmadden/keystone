@@ -72,3 +72,4 @@ visible = false
 
 [node name="CarrySprite" type="Sprite2D" parent="SpriteRoot"]
 visible = false
+

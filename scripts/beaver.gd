@@ -45,10 +45,32 @@ func _physics_process(delta: float) -> void:
 	_drain_passive_stamina(delta)
 	move_and_slide()
 	Game.stamina_changed.emit(Game.stamina)
+	queue_redraw()
 	if Game.stamina <= 0.0:
 		Game.stamina = 0.0
 		Game.game_over = true
 		Game.game_lost.emit("Exhaustion. The pond drained.")
+
+func _draw() -> void:
+	# Action progress bar above the beaver's head during multi-frame actions
+	if action_state == "idle":
+		return
+	var duration: float = 0.0
+	var label_color := Game.COL_ACCENT
+	match action_state:
+		"chewing": duration = CHEW_DURATION
+		"repairing": duration = REPAIR_DURATION
+		"placing": duration = PLACE_DURATION
+	if duration <= 0.0:
+		return
+	var progress: float = clamp(1.0 - (action_timer / duration), 0.0, 1.0)
+	var bar_w := 24.0
+	var bar_h := 4.0
+	var y_off := -26.0
+	# Backdrop
+	draw_rect(Rect2(-bar_w * 0.5 - 1, y_off - 1, bar_w + 2, bar_h + 2), Color(0, 0, 0, 0.55))
+	draw_rect(Rect2(-bar_w * 0.5, y_off, bar_w, bar_h), Color(0.06, 0.10, 0.08, 0.85))
+	draw_rect(Rect2(-bar_w * 0.5, y_off, bar_w * progress, bar_h), label_color)
 
 func _handle_input(delta: float) -> void:
 	# Resolve current action (multi-frame) first
@@ -109,7 +131,7 @@ func _try_start_action() -> void:
 		else:
 			Game.emit_message("Dam is full (10 segments).")
 			return
-	# Repair dam
+	# Repair dam (near + at least one segment below full)
 	if dam.needs_repair_nearby(here):
 		action_state = "repairing"
 		action_timer = REPAIR_DURATION
@@ -130,6 +152,19 @@ func _try_start_action() -> void:
 			_face_sprite(Vector2(tree_p.x - here.x, tree_p.y - here.y))
 			Game.emit_message("Chewing tree...")
 			return
+
+	# No action fired — give the player a hint about why.
+	if dam.is_near_dam(here):
+		if Game.dam_segments.is_empty():
+			Game.emit_message("No dam yet — bring a log to the gold zone.")
+		elif Game.carrying_log:
+			Game.emit_message("Walk onto the gold zone to place this log.")
+		else:
+			Game.emit_message("Dam is solid — nothing to repair.")
+	elif Game.carrying_log:
+		Game.emit_message("Carry this log to the gold zone at the narrow point.")
+	else:
+		Game.emit_message("Find a tree to chew or a log to carry.")
 
 func _finish_action() -> void:
 	match action_state:
