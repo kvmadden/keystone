@@ -19,12 +19,12 @@ const G := preload("res://scripts/game.gd")
 
 const SPECIES_ORDER := ["willow", "frog", "fish", "duck", "heron", "otter"]
 const SPECIES_GLYPH := {
-	"willow": "🜨",
-	"frog":   "▼",
-	"fish":   "◆",
-	"duck":   "◗",
-	"heron":  "↑",
-	"otter":  "≈",
+	"willow": "W",
+	"frog":   "F",
+	"fish":   "f",
+	"duck":   "D",
+	"heron":  "H",
+	"otter":  "O",
 }
 
 var _msg_clock := 0.0

@@ -52,9 +52,10 @@ func _trigger_drought() -> void:
 	Game.drought_active = true
 	Game.drought_days_left = 1
 	Game.emit_message("Drought! Water level falling.")
+	var had_dam: bool = Game.dam_segments.size() > 0
 	dam.drought_drain()
-	# Check lose condition: dam fully wiped
-	if Game.dam_segments.is_empty() and Game.current_day > 1 and not Game.game_over:
-		# Only lose if there *was* a dam (i.e., past day 1)
-		# We let the player react; not auto-lose on drought.
-		pass
+	# Lose condition: had a dam before the drought, and it's all gone now.
+	# (This catches "drought wiped out a 1-segment dam" — true catastrophe.)
+	if had_dam and Game.dam_segments.is_empty() and not Game.game_over:
+		Game.game_over = true
+		Game.game_lost.emit("The drought took the last dam segment. The pond drained.")

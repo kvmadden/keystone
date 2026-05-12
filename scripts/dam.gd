@@ -11,6 +11,18 @@ const G := preload("res://scripts/game.gd")
 var decay_per_day := 0.25      # −25% integrity per in-game day
 var _decay_clock := 0.0        # accumulates real seconds → applies decay across all segments
 
+var tex_dam_new: Texture2D
+var tex_dam_worn: Texture2D
+var tex_dam_broken: Texture2D
+
+func _ready() -> void:
+	if ResourceLoader.exists("res://assets/sprites/dam_new.png"):
+		tex_dam_new = load("res://assets/sprites/dam_new.png") as Texture2D
+	if ResourceLoader.exists("res://assets/sprites/dam_worn.png"):
+		tex_dam_worn = load("res://assets/sprites/dam_worn.png") as Texture2D
+	if ResourceLoader.exists("res://assets/sprites/dam_broken.png"):
+		tex_dam_broken = load("res://assets/sprites/dam_broken.png") as Texture2D
+
 func _process(delta: float) -> void:
 	# Decay at the same rate as one in-game day = 90 real seconds.
 	# Apply incrementally so the visuals smoothly transition new→worn→broken.
@@ -43,13 +55,24 @@ func _draw() -> void:
 		if y_tile < int(world.dam_zone_y_top):
 			break
 		var integrity: float = Game.dam_segments[i]
-		var c := Game.COL_DAM_NEW if integrity > 0.66 else (Game.COL_DAM_WORN if integrity > 0.33 else Game.COL_DAM_BROK)
-		var rect := Rect2(x + 2, y_tile * Game.TILE_SIZE + 4, Game.TILE_SIZE - 4, Game.TILE_SIZE - 8)
-		draw_rect(rect, c)
-		# Plank lines
-		for k in range(3):
-			var ly := rect.position.y + (k + 1) * (rect.size.y / 4.0)
-			draw_line(Vector2(rect.position.x, ly), Vector2(rect.position.x + rect.size.x, ly), Color(0, 0, 0, 0.4), 1.0)
+		var rect_full := Rect2(x, y_tile * Game.TILE_SIZE, Game.TILE_SIZE, Game.TILE_SIZE)
+		var tex: Texture2D = null
+		if integrity > 0.66:
+			tex = tex_dam_new
+		elif integrity > 0.33:
+			tex = tex_dam_worn
+		else:
+			tex = tex_dam_broken
+		if tex != null:
+			draw_texture_rect(tex, rect_full, false)
+		else:
+			# Fallback rectangle
+			var c := Game.COL_DAM_NEW if integrity > 0.66 else (Game.COL_DAM_WORN if integrity > 0.33 else Game.COL_DAM_BROK)
+			var rect := Rect2(x + 2, y_tile * Game.TILE_SIZE + 4, Game.TILE_SIZE - 4, Game.TILE_SIZE - 8)
+			draw_rect(rect, c)
+			for k in range(3):
+				var ly := rect.position.y + (k + 1) * (rect.size.y / 4.0)
+				draw_line(Vector2(rect.position.x, ly), Vector2(rect.position.x + rect.size.x, ly), Color(0, 0, 0, 0.4), 1.0)
 
 func can_place() -> bool:
 	return Game.dam_segments.size() < 10

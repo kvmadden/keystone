@@ -17,8 +17,19 @@ var dam_zone_y_bot := 11       # 4-tall zone (stream + 1 above/below)
 # Per-tile cached display tint (refresh on water update)
 var _display: Array = []
 
+# Cached sprite textures (loaded once in _ready)
+var tex_tree: Texture2D
+var tex_lodge: Texture2D
+var tex_stump: Texture2D
+
 func _ready() -> void:
 	_generate()
+	if ResourceLoader.exists("res://assets/sprites/tree.png"):
+		tex_tree = load("res://assets/sprites/tree.png") as Texture2D
+	if ResourceLoader.exists("res://assets/sprites/lodge.png"):
+		tex_lodge = load("res://assets/sprites/lodge.png") as Texture2D
+	if ResourceLoader.exists("res://assets/sprites/tree_stump.png"):
+		tex_stump = load("res://assets/sprites/tree_stump.png") as Texture2D
 	queue_redraw()
 
 func _generate() -> void:
@@ -96,17 +107,23 @@ func _draw() -> void:
 			if t != Game.Tile.SHALLOW and t != Game.Tile.DEEP:
 				draw_rect(rect, Color(0, 0, 0, 0.10), false, 1.0)
 
-			# Tree top: draw a darker square within the tile
+			# Tree: prefer sprite, fall back to placeholder shape
 			if t == Game.Tile.TREE:
-				var inner := Rect2(rect.position + Vector2(6, 4), Vector2(20, 24))
-				draw_rect(inner, Game.COL_TREE)
-				draw_rect(Rect2(inner.position + Vector2(-2, -3), Vector2(24, 12)), Game.COL_TREE_CR)
-				draw_rect(Rect2(rect.position + Vector2(13, 24), Vector2(6, 6)), Game.COL_STUMP)
+				if tex_tree != null:
+					draw_texture_rect(tex_tree, rect, false)
+				else:
+					var inner := Rect2(rect.position + Vector2(6, 4), Vector2(20, 24))
+					draw_rect(inner, Game.COL_TREE)
+					draw_rect(Rect2(inner.position + Vector2(-2, -3), Vector2(24, 12)), Game.COL_TREE_CR)
+					draw_rect(Rect2(rect.position + Vector2(13, 24), Vector2(6, 6)), Game.COL_STUMP)
 			elif t == Game.Tile.LODGE:
-				var lr := Rect2(rect.position + Vector2(2, 2), Vector2(28, 28))
-				draw_rect(lr, Game.COL_LODGE)
-				var door := Rect2(rect.position + Vector2(13, 18), Vector2(6, 10))
-				draw_rect(door, Game.COL_LODGE_DR)
+				if tex_lodge != null:
+					draw_texture_rect(tex_lodge, rect, false)
+				else:
+					var lr := Rect2(rect.position + Vector2(2, 2), Vector2(28, 28))
+					draw_rect(lr, Game.COL_LODGE)
+					var door := Rect2(rect.position + Vector2(13, 18), Vector2(6, 10))
+					draw_rect(door, Game.COL_LODGE_DR)
 
 	# Dam-zone outline (gold dashed-ish rect)
 	var dz_rect := Rect2(

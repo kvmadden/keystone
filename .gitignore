@@ -2,9 +2,10 @@
 .godot/
 .DS_Store
 *.tmp
-export.cfg
-export_presets.cfg
 *.translation
 .import/
 *.pck
-*.zip
+build/
+
+# Logs
+*.log
