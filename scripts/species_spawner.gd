@@ -28,6 +28,16 @@ var habitats := {
 	"otter":  [Game.Tile.DEEP, Game.Tile.SHALLOW],
 }
 
+# Latin binomial + one-line ecology note — fired when a species first appears.
+var species_info := {
+	"willow": ["Salix nigra",         "Pioneer woody species — its roots stabilize the new bank."],
+	"frog":   ["Lithobates pipiens",  "Amphibian indicator — present water is clean enough to breed."],
+	"fish":   ["Lepomis macrochirus", "Bluegill arrive once the pond is deep enough to overwinter."],
+	"duck":   ["Aix sponsa",          "Wood duck — nests in the new shoreline willows."],
+	"heron":  ["Ardea herodias",      "Great blue heron — apex of the wetland food web has arrived."],
+	"otter":  ["Lontra canadensis",   "River otter — only returns once fish populations sustain it."],
+}
+
 func _ready() -> void:
 	Game.day_advanced.connect(_on_day)
 	# Tick once at game start to seed any obvious species
@@ -57,9 +67,11 @@ func _evaluate() -> void:
 
 func _adjust(species_name: String, conditions_met: bool) -> void:
 	if conditions_met:
+		var was_zero: bool = int(Game.species[species_name]) == 0
 		Game.species[species_name] = min(MAX_POP, int(Game.species[species_name]) + 1)
-		if int(Game.species[species_name]) == 1:
-			Game.emit_message("New species: %s" % species_name.capitalize())
+		if was_zero:
+			var info: Array = species_info.get(species_name, [species_name.capitalize(), ""])
+			Game.emit_message("%s (%s) arrived. %s" % [species_name.capitalize(), info[0], info[1]])
 	else:
 		Game.species[species_name] = max(0, int(Game.species[species_name]) - 1)
 

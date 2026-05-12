@@ -46,7 +46,7 @@ horizontal_alignment = 1
 [node name="Subtitle" type="Label" parent="Center"]
 theme_override_fonts/font = ExtResource("2")
 theme_override_font_sizes/font_size = 18
-text = "a beaver game"
+text = "Castor canadensis · a beaver game"
 horizontal_alignment = 1
 
 [node name="Spacer1" type="Control" parent="Center"]

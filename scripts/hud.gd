@@ -30,10 +30,13 @@ const SPECIES_GLYPH := {
 var _msg_clock := 0.0
 var _species_lights: Dictionary = {}
 var _peak_species_count := 0
+var _day_overlay: Label
+var _day_overlay_t := 0.0
 
 func _ready() -> void:
 	_build_species_panel()
 	_add_hud_backdrops()
+	_build_day_overlay()
 	Game.stamina_changed.connect(_on_stamina)
 	Game.species_changed.connect(_on_species)
 	Game.day_advanced.connect(_on_day)
@@ -59,8 +62,35 @@ func _process(delta: float) -> void:
 		_msg_clock -= delta
 		if _msg_clock <= 0.0:
 			message_label.text = ""
+	# Day overlay: hold ~1.5s, then fade ~1.5s (t counts 1.0 → 0.0 over 3.0s)
+	if _day_overlay != null and _day_overlay_t > 0.0:
+		_day_overlay_t = max(0.0, _day_overlay_t - delta / 3.0)
+		var t: float = _day_overlay_t
+		var alpha: float = 1.0 if t > 0.5 else t * 2.0
+		_day_overlay.modulate = Color(1, 1, 1, alpha)
 	# Update action prompt every frame
 	prompt_label.text = _build_prompt()
+
+func _build_day_overlay() -> void:
+	_day_overlay = Label.new()
+	_day_overlay.anchor_left = 0.5
+	_day_overlay.anchor_top = 0.5
+	_day_overlay.anchor_right = 0.5
+	_day_overlay.anchor_bottom = 0.5
+	_day_overlay.offset_left = -300.0
+	_day_overlay.offset_top = -60.0
+	_day_overlay.offset_right = 300.0
+	_day_overlay.offset_bottom = 60.0
+	_day_overlay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_day_overlay.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_day_overlay.add_theme_font_size_override("font_size", 64)
+	_day_overlay.add_theme_color_override("font_color", Game.COL_ACCENT)
+	_day_overlay.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_day_overlay.add_theme_constant_override("outline_size", 6)
+	_day_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_day_overlay.modulate = Color(1, 1, 1, 0)
+	_day_overlay.text = ""
+	add_child(_day_overlay)
 
 func _add_hud_backdrops() -> void:
 	# Insert a translucent dark panel BEHIND the top-left + top-right HUD groups
@@ -178,6 +208,13 @@ func _on_species(counts: Dictionary) -> void:
 
 func _on_day(d: int) -> void:
 	_refresh_day_label()
+	_show_day_overlay(d)
+
+func _show_day_overlay(d: int) -> void:
+	if _day_overlay == null:
+		return
+	_day_overlay.text = "Day  %d" % d
+	_day_overlay_t = 1.0
 
 func _on_phase(_p: int, _t: float) -> void:
 	_refresh_day_label()
@@ -187,7 +224,8 @@ func _refresh_day_label() -> void:
 
 func _on_message(t: String) -> void:
 	message_label.text = t
-	_msg_clock = 4.0
+	# Ecology messages with Latin names need longer dwell.
+	_msg_clock = 8.0 if t.find("(") >= 0 else 4.0
 
 func _on_carry(c: bool) -> void:
 	carry_chip.visible = c
@@ -231,12 +269,20 @@ func _build_prompt() -> String:
 func _on_win() -> void:
 	win_card.visible = true
 	get_tree().paused = true
-	win_stats.text = "Days survived  %d\nDam segments  %d\nPeak species  %d" % [Game.current_day, Game.dam_segments.size(), _peak_species_count]
+	win_stats.text = (
+		"Six trophic levels held for three consecutive days.\n"
+		+ "Wetland integrity stable — the pond will outlive you.\n\n"
+		+ "Days  %d   ·   Dam  %d segments   ·   Peak species  %d"
+	) % [Game.current_day, Game.dam_segments.size(), _peak_species_count]
 
 func _on_lose(reason: String) -> void:
 	lose_card.visible = true
 	get_tree().paused = true
-	lose_reason.text = reason
+	lose_reason.text = (
+		"%s\n\n"
+		+ "Without the engineer, the wetland reverts.\n"
+		+ "Days held  %d   ·   Peak species  %d"
+	) % [reason, Game.current_day, _peak_species_count]
 
 # Button callbacks (wired in scene)
 func _on_resume_pressed() -> void:
